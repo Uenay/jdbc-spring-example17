@@ -4,16 +4,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+
 @Repository
 
-public class BookRepositoryImpl implements BookRepository{
+public class BookRepositoryImpl implements BookRepository {
     @Autowired
     private DataSource dataSource;
 
@@ -55,9 +53,31 @@ public class BookRepositoryImpl implements BookRepository{
         return result;
     }
 
+
     private Book converRowToBook(ResultSet resultSet) throws SQLException {
         Long id = resultSet.getLong("id");
         String name = resultSet.getString("name");
         return new Book(id, name);
+    }
+
+    @Override
+    public Book findBookById(long id) {
+        try (Connection connection = dataSource.getConnection()){
+            String query = "SELECT * FROM books WHERE id = ?";
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
+                statement.setLong(1, id);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        Book book = new Book();
+                        book.setId(resultSet.getLong("id"));
+                        book.setName(resultSet.getString("name"));
+                        return book;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
